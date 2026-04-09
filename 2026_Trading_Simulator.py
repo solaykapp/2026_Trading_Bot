@@ -10,38 +10,32 @@ def send_telegram(msg):
     chat_id = os.getenv('TELEGRAM_CHAT_ID')
     if token and chat_id:
         url = f"https://api.telegram.org/bot{token}/sendMessage"
-        try:
-            requests.post(url, json={"chat_id": chat_id, "text": msg})
+        try: requests.post(url, json={"chat_id": chat_id, "text": msg})
         except: pass
 
 try:
     client = Client(os.getenv('BINANCE_API_KEY'), os.getenv('BINANCE_API_SECRET'))
-    print("✅ تم الاتصال ببينانس بنجاح")
+    print("✅ المتداول الذكي متصل ببينانس")
 except Exception as e:
-    print(f"❌ خطأ في الاتصال: {e}")
+    print(f"❌ خطأ اتصال: {e}")
 
 def run_bot():
-    rsi_threshold = 42 
-    start_msg = "🤖 [ML-V2] المحرك الذكي المصحح يعمل الآن بنجاح!"
-    print(start_msg)
-    send_telegram(start_msg)
+    print("🚀 تم تشغيل المحرك الهجومي V2...")
+    send_telegram("🤖 [ML-V2] النظام متصل ويعمل الآن بكامل طاقته!")
     
     while True:
         try:
-            symbols = ['BTCUSDT', 'ETHUSDT', 'SUIUSDT', 'SOLUSDT',      klines = client.get_klines(symbol=symbol, interval='15m', limit=50)
-                df = pd.DataFrame(klines)
-                close_prices = df[4].astype(float)
-                rsi = RSIIndicator(close=close_prices).rsi().iloc[-1]
+            symbols = ['BTCUSDT', 'ETHUSDT', 'SUIUSDT', 'SOLUSDT', 'AVAXUSDT']
+        '15m', limit=50)
+                df = pd.DataFrame(k)[4].astype(float)
+                rsi = RSIIndicator(close=df).rsi().iloc[-1]
+                print(f"🔍 {symbol}: {rsi:.2f}")
                 
-                print(f"🔍 فحص {symbol} | RSI: {rsi:.2f}")
-                
-                if rsi <= rsi_threshold:
-                    msg = f"🎯 فرصة هجومية: {symbol}\n📈 RSI: {rsi:.2f}\n⏰ {time.ctime()}"
-                    send_telegram(msg)
-            
+                if rsi <= 42:
+                    send_telegram(f"🎯 فرصة: {symbol}\n📈 RSI: {rsi:.2f}")
             time.sleep(180)
         except Exception as e:
-            print(f"🔄 محاولة تصحيح ذاتي: {e}")
+            print(f"🔄 تنبيه: {e}")
             time.sleep(60)
 
 if __name__ == "__main__":
