@@ -1,6 +1,6 @@
 pandas
 requests
 python-dotenv
-binance-connector
+python-binance
 schedule
 ta
