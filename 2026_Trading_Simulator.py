@@ -18,5 +18,5 @@ def run_bot():
                     requests.post(url, json={'chat_id': os.getenv("TELEGRAM_CHAT_ID"), 'text': f'🎯 {s} RSI: {r:.2f}'})
             time.sleep(180)
         except Exception as e:
-            print(f'Error: {e}nif __name__ == '__main__':
+            print(f'Error: {e}'if __name__ == '__main__':
     run_bot()
