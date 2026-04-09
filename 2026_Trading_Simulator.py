@@ -5,18 +5,20 @@ import schedule
 import logging
 import os
 import re
+import subprocess
 from datetime import datetime
 from binance.client import Client
+from openai import OpenAI
 
 # ─────────────────────────────────────────────
-#    ⚙️  إعدادات 2026_Trading_Simulator (الإصدار التراكمي)
+#    ⚙️  إعدادات 2026_Trading_Simulator (الإصدار الأوتوماتيكي)
 # ─────────────────────────────────────────────
 CONFIG = {
     "TELEGRAM_TOKEN": "8623422400:AAHZ6FSMWANcbk3bg0IKAbR1Te3LTqViYy0",
     "TELEGRAM_CHAT_ID": "1633067596",
     "PPLX_API_KEY": "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",
     "BINANCE_API_KEY": "8t26FeqsNQdtLa7ckVTuvNsFbZFhyJkqLgCzChJTpYgrdBQvvh17XonimZCXd1CK",
-    "BINANCE_SECRET_KEY": "AnaxVfv53jtAAVEj5qD2ND3SvThZa1DcNwXENOxBprImItYuG4ahmjvJdofXwBzx", 
+    "BINANCE_SECRET_KEY": "اكتب_هنا_السيكرت_كي_الخاص_بك", 
     "CSV_FILE": "trading_data.csv",
     "HALAL_FILE": "halal_crypto_100_list_2026.txt",
     "STABLE_COINS": ["USDC", "USDT", "FDUSD", "TUSD", "DAI", "PYUSD", "USDP"]
@@ -24,7 +26,6 @@ CONFIG = {
 
 # تهيئة الاتصالات
 binance_client = Client(CONFIG["BINANCE_API_KEY"], CONFIG["BINANCE_SECRET_KEY"])
-from openai import OpenAI
 pplx_client = OpenAI(api_key=CONFIG["PPLX_API_KEY"], base_url="https://api.perplexity.ai")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(message)s", datefmt="%H:%M:%S")
 
@@ -65,23 +66,36 @@ def get_ai_sentiment(symbol):
         return response.choices[0].message.content
     except: return "NEUTRAL"
 
+def auto_push_to_github(found_count):
+    """رفع التعديلات تلقائياً إلى GitHub دون تدخل بشري"""
+    try:
+        logging.info("📤 جاري مزامنة البيانات الجديدة مع GitHub...")
+        subprocess.run(["git", "add", "."], check=True)
+        commit_msg = f"Auto-Update: Captured {found_count} opportunities at {datetime.now().strftime('%H:%M')}"
+        subprocess.run(["git", "commit", "-m", commit_msg], check=True)
+        subprocess.run(["git", "push"], check=True)
+        logging.info("✅ تم الرفع والمزامنة بنجاح!")
+    except Exception as e:
+        logging.error(f"⚠️ فشل الرفع التلقائي: {e}")
+
 def save_to_cumulative_csv(new_hits):
-    """حفظ الصفقات الجديدة دون مسح القديمة مع منع التكرار اللحظي"""
     if not new_hits: return
     
     new_df = pd.DataFrame(new_hits)
     
     if os.path.exists(CONFIG["CSV_FILE"]):
         old_df = pd.read_csv(CONFIG["CSV_FILE"])
-        # دمج البيانات وحذف التكرار لنفس العملة في نفس الساعة
         combined_df = pd.concat([old_df, new_df]).drop_duplicates(subset=['Symbol'], keep='last')
         combined_df.to_csv(CONFIG["CSV_FILE"], index=False)
     else:
         new_df.to_csv(CONFIG["CSV_FILE"], index=False)
+    
+    # استدعاء الأتمتة فور الحفظ
+    auto_push_to_github(len(new_hits))
 
-def run_cumulative_cycle():
+def run_trading_cycle():
     symbols = get_symbols()
-    logging.info(f"🧐 فحص تراكمي لـ {len(symbols)} عملة...")
+    logging.info(f"🧐 دورة فحص ذكية لـ {len(symbols)} عملة...")
     current_cycle_hits = []
 
     for symbol in symbols:
@@ -91,17 +105,15 @@ def run_cumulative_cycle():
             
             if res["retCode"] == 0:
                 df = pd.DataFrame(res["result"]["list"], columns=["ts", "o", "h", "l", "c", "v", "t"])
-                df[["o", "c", "l"]] = df[["o", "c", "l"]].apply(pd.to_numeric)
+                df[["o", "c"]] = df[["o", "c"]].apply(pd.to_numeric)
                 df = df.iloc[::-1]
                 
                 price = df["c"].iloc[-1]
                 rsi = calculate_rsi(df["c"]).iloc[-1]
                 
-                # شرط الدخول
                 if 40 <= rsi <= 65 and price > df["o"].iloc[-1]:
                     if check_binance_confirmation(symbol):
                         ai_res = get_ai_sentiment(symbol)
-                        
                         if "SAFE" in ai_res.upper():
                             hit = {
                                 "Time": datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -112,19 +124,17 @@ def run_cumulative_cycle():
                             }
                             current_cycle_hits.append(hit)
                             
-                            # إرسال تليجرام
-                            msg = f"🚀 *قنص تراكمي*\n🪙 {symbol}\n💰 السعر: `{price}`\n🛡️ AI: `{ai_res}`"
+                            msg = f"🚀 *قنص أوتوماتيكي*\n🪙 {symbol}\n💰 السعر: `{price}`\n🛡️ AI: `{ai_res}`"
                             requests.post(f"https://api.telegram.org/bot{CONFIG['TELEGRAM_TOKEN']}/sendMessage", 
                                           json={"chat_id": CONFIG["TELEGRAM_CHAT_ID"], "text": msg, "parse_mode": "Markdown"})
             time.sleep(0.01)
         except: continue
 
     save_to_cumulative_csv(current_cycle_hits)
-    logging.info(f"✅ تم تحديث السجل التراكمي. إجمالي الفرص الآن: {len(pd.read_csv(CONFIG['CSV_FILE'])) if os.path.exists(CONFIG['CSV_FILE']) else 0}")
 
 if __name__ == "__main__":
-    run_cumulative_cycle()
-    schedule.every(5).minutes.do(run_cumulative_cycle)
+    run_trading_cycle()
+    schedule.every(5).minutes.do(run_trading_cycle)
     while True:
         schedule.run_pending()
         time.sleep(1)
