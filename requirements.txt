@@ -1,3 +1,4 @@
+google-generativeai>=0.8.3
 pandas
 requests
 python-dotenv
@@ -7,4 +8,3 @@ ta
 openai
 pybit
 aiohttp
-google-generativeai
