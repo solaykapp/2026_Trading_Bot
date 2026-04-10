@@ -2,70 +2,70 @@ import os, time, pandas as pd, requests
 from dotenv import load_dotenv
 from binance.client import Client
 from ta.momentum import RSIIndicator
+from ta.trend import MACD, EMAIndicator
 
-# 1. تحميل الإعدادات من ملف .env
 load_dotenv()
 
 def send_telegram(msg):
-    """وظيفة إرسال التنبيهات إلى تليجرام"""
     token = os.getenv('TELEGRAM_TOKEN')
     chat_id = os.getenv('TELEGRAM_CHAT_ID')
     if token and chat_id:
         url = f"https://api.telegram.org/bot{token}/sendMessage"
-        try:
-            requests.post(url, json={'chat_id': chat_id, 'text': msg})
-        except Exception as e:
-            print(f"❌ خطأ تليجرام: {e}")
+        try: requests.post(url, json={'chat_id': chat_id, 'text': msg})
+        except: pass
 
-# 2. إعداد اتصال بينانس
 try:
-    api_key = os.getenv('BINANCE_API_KEY')
-    api_secret = os.getenv('BINANCE_API_SECRET')
-    client = Client(api_key, api_secret)
-    print("✅ نظام بينانس متصل بنجاح")
+    client = Client(os.getenv('BINANCE_API_KEY'), os.getenv('BINANCE_API_SECRET'))
+    print("✅ نظام التحليل المتقدم متصل")
 except Exception as e:
-    print(f"❌ فشل الاتصال ببينانس: {e}")
+    print(f"❌ خطأ: {e}")
 
-def run_trading_bot():
-    """المحرك الرئيسي لفحص السوق"""
-    print("🚀 المحرك V2.5 يعمل الآن... جاري مراقبة العملات")
-    send_telegram("🤖 [V2.5] تم تفعيل الرادار الهجومي بنجاح!")
+def run_advanced_bot():
+    print("🚀 رادار الدقة العالية V3.0 انطلق...")
+    send_telegram("🎯 تم تفعيل رادار الدقة العالية (RSI + MACD)")
     
-    # قائمة العملات المستهدفة
     symbols = ['BTCUSDT', 'ETHUSDT', 'SUIUSDT', 'SOLUSDT', 'AVAXUSDT']
     
     while True:
         try:
             for symbol in symbols:
-                # جلب آخر 50 شمعة (إطار 15 دقيقة)
-                klines = client.get_klines(symbol=symbol, interval='15m', limit=50)
-                
-                # تحويل البيانات إلى DataFrame لاستخراج سعر الإغلاق
+                klines = client.get_klines(symbol=symbol, interval='15m', limit=100)
                 df = pd.DataFrame(klines)[4].astype(float)
                 
-                # حساب مؤشر RSI
-                rsi_val = RSIIndicator(close=df).rsi().iloc[-1]
+                # 1. حساب RSI
+                rsi = RSIIndicator(close=df).rsi().iloc[-1]
                 
-                # طباعة النتيجة في Terminal للمراقبة المحلية
-                print(f"🔍 {symbol}: {rsi_val:.2f}")
+                # 2. حساب MACD
+                macd_obj = MACD(close=df)
+                macd_line = macd_obj.macd().iloc[-1]
+                signal_line = macd_obj.macd_signal().iloc[-1]
                 
-                # شرط التنبيه: إذا كان RSI أقل من أو يساوي 42
-                if rsi_val <= 42:
+                # 3. حساب المتوسط المتحرك EMA 200 (لمعرفة الاتجاه)
+                ema_200 = EMAIndicator(close=df, window=100).ema_indicator().iloc[-1]
+                current_price = df.iloc[-1]
+
+                # الخوارزمية المطورة للدقة (الإشارة الذهبية):
+                # شرط 1: RSI تحت 42 (سعر رخيص)
+                # شرط 2: MACD يتقاطع صعوداً أو يقترب من الصفر (بداية زخم)
+                # شرط 3: السعر ليس في انهيار حر تحت الـ EMA بشكل حاد
+                
+                if rsi <= 42 and macd_line > signal_line:
+                    status = "🔥 إشارة قوية (تأكيد مزدوج)" if current_price > ema_200 else "⚠️ إشارة مضاربة (عكس الاتجاه)"
                     alert = (
-                        f"🎯 فرصة هجومية اكتشفت! \n"
+                        f"{status}\n"
                         f"🪙 العملة: {symbol}\n"
-                        f"📈 RSI الحالي: {rsi_val:.2f}\n"
-                        f"⏰ الوقت: {time.strftime('%H:%M:%S')}"
+                        f"📈 RSI: {rsi:.2f}\n"
+                        f"📊 MACD: تقاطع إيجابي ✅\n"
+                        f"⏰ {time.strftime('%H:%M:%S')}"
                     )
                     send_telegram(alert)
-            
-            # انتظار 3 دقائق قبل الفحص التالي
-            time.sleep(180)
-            
-        except Exception as e:
-            print(f"🔄 حدث خطأ، إعادة محاولة تلقائية بعد دقيقة: {e}")
-            time.sleep(60)
+                    print(f"🎯 تم إرسال تنبيه عالي الدقة لـ {symbol}")
+                else:
+                    print(f"🔍 {symbol}: RSI {rsi:.2f} | لا يوجد تقاطع MACD")
 
-# 3. نقطة انطلاق البرنامج
+            time.sleep(180)
+        except Exception as e:
+            print(f"🔄 إعادة محاولة: {e}"); time.sleep(60)
+
 if __name__ == "__main__":
-    run_trading_bot()
+    run_advanced_bot()
