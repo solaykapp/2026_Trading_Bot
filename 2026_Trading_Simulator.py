@@ -1,82 +1,79 @@
-import os, asyncio, aiohttp, pandas as pd, time
+import requests
+import time
+import os
 from dotenv import load_dotenv
-from binance.client import Client
-from pybit.unified_trading import HTTP
-from ta.momentum import RSIIndicator
-from ta.trend import MACD
 
+# تحميل مفاتيح السرية
 load_dotenv()
 
-# --- الحوكمة المالية والحلال ---
-# تقسيم 50,000 ريال (13,333 دولار) على 100 عملية
-TRADE_AMOUNT_USD = 133.0 
+# إعدادات تليجرام
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-# إعداد الاتصالات
-b_client = Client(os.getenv('BINANCE_API_KEY'), os.getenv('BINANCE_API_SECRET'))
-bybit_session = HTTP(testnet=False, api_key=os.getenv('BYBIT_API_KEY'), api_secret=os.getenv('BYBIT_API_SECRET'))
+# --- فلتر الحوكمة الشرعية (Shariah Compliance) ---
+# ملاحظة: هذه قائمة أولية، يفضل تحديثها دورياً من مصادر موثوقة
+HALAL_KEYWORDS = ['gold', 'stable', 'realestate', 'tech', 'utility']
+BANNED_KEYWORDS = ['casino', 'bet', 'gamble', 'win', 'lotto', 'dice', 'shiba', 'doge', 'pepe']
 
-# قائمة الـ 100 عملة الأكثر سيولة (عينة وتتحدث آلياً)
-SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'SUIUSDT', 'AVAXUSDT', 'XRPUSDT', 'ADAUSDT', 'LINKUSDT', 'DOTUSDT', 'MATICUSDT', 'LTCUSDT', 'BCHUSDT', 'NEARUSDT', 'APTUSDT', 'TIAUSDT', 'OPUSDT', 'ARBUSDT', 'INJUSDT', 'RNDRUSDT', 'FETUSDT'] # يمكن إضافة حتى 100 عملة هنا
-
-async def send_telegram(msg):
-    token = os.getenv('TELEGRAM_TOKEN')
-    chat_id = os.getenv('TELEGRAM_CHAT_ID')
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
-    async with aiohttp.ClientSession() as session:
-        try: await session.post(url, json={'chat_id': chat_id, 'text': msg})
-        except: pass
-
-async def fetch_binance(symbol):
-    try:
-        loop = asyncio.get_event_loop()
-        # استخدام run_in_executor لمنع حظر المهام الأخرى
-        klines = await loop.run_in_executor(None, lambda: b_client.get_klines(symbol=symbol, interval='5m', limit=100))
-        df = pd.DataFrame(klines)[4].astype(float)
-        return df
-    except: return None
-
-async def fetch_bybit(symbol):
-    try:
-        loop = asyncio.get_event_loop()
-        # جلب بيانات Spot من بايبت
-        response = await loop.run_in_executor(None, lambda: bybit_session.get_kline(category="spot", symbol=symbol, interval=5, limit=100))
-        df = pd.DataFrame(response['result']['list'])[4].astype(float)
-        return df
-    except: return None
-
-async def analyze(symbol, platform):
-    df = await fetch_binance(symbol) if platform == "Binance" else await fetch_bybit(symbol)
-    if df is None or len(df) < 30: return
-
-    rsi = RSIIndicator(close=df).rsi().iloc[-1]
-    macd_obj = MACD(close=df)
-    macd_line = macd_obj.macd().iloc[-1]
-    signal_line = macd_obj.macd_signal().iloc[-1]
-
-    # استراتيجية الـ Scalping المفلترة (دقة 93%)
-    if rsi <= 45 and macd_line > signal_line:
-        alert = (
-            f"🌍 [رادار عالمي - {platform}]\n"
-            f"🪙 العملة: {symbol}\n"
-            f"📈 RSI: {rsi:.2f}\n"
-            f"✅ إشارة: دخول Spot (حلال)\n"
-            f"💰 المقترح: دخول بـ ${TRADE_AMOUNT_USD}"
-        )
-        await send_telegram(alert)
-
-async def worker():
-    print(f"🚀 رادار V4.0 العالمي يعمل الآن...")
-    print(f"📊 يستهدف 100 عملية متوازية برأس مال 50,000 ريال")
+def is_shariah_compliant(pair_data):
+    """فحص شرعية العملة بناءً على الاسم والوصف والسيولة"""
+    name = pair_data.get('baseToken', {}).get('name', '').lower()
+    symbol = pair_data.get('baseToken', {}).get('symbol', '').lower()
     
-    while True:
-        tasks = []
-        for symbol in SYMBOLS:
-            tasks.append(analyze(symbol, "Binance"))
-            tasks.append(analyze(symbol, "Bybit"))
+    # 1. فحص الكلمات المحرمة في الاسم (قمار، ميم غير هادف، إلخ)
+    for word in BANNED_KEYWORDS:
+        if word in name or word in symbol:
+            return False
+            
+    # 2. فحص السيولة (تجنب العملات الوهمية أو غسيل الأموال)
+    liquidity = pair_data.get('liquidity', {}).get('usd', 0)
+    if liquidity < 10000:  # الحد الأدنى للسيولة 10 آلاف دولار لضمان الجدية
+        return False
         
-        await asyncio.gather(*tasks)
-        print(f"📡 تم مسح السوق بالكامل في ثانية واحدة | {time.strftime('%H:%M:%S')}")
-        await asyncio.sleep(60) # تكرار المسح كل دقيقة لصيد الارتدادات السريعة
+    return True
 
+def send_telegram_msg(message):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}
+    try:
+        requests.post(url, json=payload)
+    except Exception as e:
+        print(f"خطأ في إرسال تليجرام: {e}")
+
+def scan_dex_screener():
+    """رادار DexScreener للسيولة والتريند"""
+    print("🔍 جاري مسح DexScreener عن الفرص الحلال...")
+    # رابط لجلب العملات الأكثر تداولاً (Trending) على شبكة Solana كمثال
+    url = "https://api.dexscreener.com/latest/dex/search?q=solana" 
+    
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            pairs = response.json().get('pairs', [])
+            for pair in pairs[:10]:  # فحص أعلى 10 نتائج
+                price_change = pair.get('priceChange', {}).get('h1', 0)
+                volume = pair.get('volume', {}).get('h1', 0)
+                
+                # شرط التنبيه: ارتفاع سعري > 10% وحجم تداول جيد وفلتر حلال
+                if price_change > 10 and volume > 50000:
+                    if is_shariah_compliant(pair):
+                        msg = (
+                            f"🚀 *فرصة DexScreener حلال*\n"
+                            f"💎 العملة: {pair['baseToken']['name']} ({pair['baseToken']['symbol']})\n"
+                            f"📈 التغير (1h): {price_change}%\n"
+                            f"💰 السيولة: ${pair['liquidity']['usd']:,.0f}\n"
+                            f"📊 حجم التداول: ${volume:,.0f}\n"
+                            f"🔗 الرابط: {pair['url']}"
+                        )
+                        send_telegram_msg(msg)
+                        print(f"✅ تم العثور على فرصة: {pair['baseToken']['symbol']}")
+        else:
+            print("⚠️ فشل الاتصال بـ DexScreener")
+    except Exception as e:
+        print(f"❌ خطأ تقني: {e}")
+
+# تشغيل الرادار
 if __name__ == "__main__":
-    asyncio.run(worker())
+    while True:
+        scan_dex_screener()
+        time.sleep(300)  # المسح كل 5 دقائق لراحة المعالج
