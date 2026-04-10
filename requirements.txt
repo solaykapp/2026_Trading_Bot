@@ -5,3 +5,5 @@ python-binance
 schedule
 ta
 openai
+pybit
+aiohttp
