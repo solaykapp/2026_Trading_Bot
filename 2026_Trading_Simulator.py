@@ -1,79 +1,59 @@
 import os
 import requests
-import google.generativeai as genai
+import json
 from dotenv import load_dotenv
 
-# 1. تحميل الإعدادات المحلية
 load_dotenv()
 
-# 2. جلب المفاتيح من إعدادات البيئة
+# الإعدادات
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-model = None
+def call_gemini_direct(prompt):
+    """الاتصال المباشر بـ Gemini v1 وتجاوز v1beta نهائياً"""
+    # رابط الإصدار المستقر v1 (وليس v1beta)
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={GEMINI_KEY}"
+    
+    headers = {'Content-Type': 'application/json'}
+    payload = {
+        "contents": [{
+            "parts": [{"text": prompt}]
+        }],
+        "generationConfig": {
+            "temperature": 0.7,
+            "maxOutputTokens": 800
+        }
+    }
 
-print("🚀 جاري بدء تشغيل النظام ببروتوكول V6.4 المستقر...")
-
-if GEMINI_KEY:
     try:
-        # التعديل الحاسم: فرض بروتوكول 'rest' لتجاوز مشاكل الإصدارات التجريبية v1beta
-        genai.configure(api_key=GEMINI_KEY, transport='rest')
+        print("🔗 محاولة الاتصال المباشر ببروتوكول V1 المستقر...")
+        response = requests.post(url, headers=headers, json=payload)
+        response_data = response.json()
         
-        # اختيار الموديل المستقر الأكثر كفاءة
-        model = genai.GenerativeModel(
-            model_name='gemini-1.5-flash',
-            system_instruction=(
-                "أنت مدير محفظة أسامة بن عبد الرحمن الاستثمارية. "
-                "تحلل البيانات وتتخذ قرارات تداول بناءً على الحوكمة وإدارة المخاطر. "
-                "لغة التواصل: العربية."
-            )
-        )
-        # اختبار أولي سريع للتأكد من تفعيل الربط
-        test_check = model.generate_content("ping")
-        print("✅ تم تفعيل الموديل والربط بنجاح عبر بروتوكول REST.")
+        if response.status_code == 200:
+            return response_data['candidates'][0]['content']['parts'][0]['text']
+        else:
+            return f"❌ خطأ API ({response.status_code}): {response.text}"
     except Exception as e:
-        print(f"❌ فشل الربط النهائي. السبب: {str(e)}")
-else:
-    print("❌ خطأ: GEMINI_API_KEY غير موجود في إعدادات Render!")
+        return f"❌ فشل الاتصال المباشر: {str(e)}"
 
-def send_telegram_msg(text):
-    """إرسال التقارير لتليجرام أسامة"""
+def send_telegram(text):
     if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-        payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "Markdown"}
-        try:
-            requests.post(url, json=payload)
-        except Exception as e:
-            print(f"❌ فشل إرسال تليجرام: {str(e)}")
+        requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "Markdown"})
 
-def analyze_market_live():
-    """محاكاة فرصة تداول حقيقية لأسامة"""
-    if not model:
-        return "❌ محرك الذكاء الاصطناعي غير جاهز."
-
-    market_data = (
-        "العملة: SOL/USDT\n"
-        "السعر الحالي: 145.20$\n"
-        "مؤشر RSI: 31 (تشبع بيعي)\n"
-        "المعايير: حوكمة شرعية + إدارة مخاطر"
-    )
+def run_simulation():
+    print("🚀 إطلاق نظام أسامة V7.0 (Direct Link)")
     
-    try:
-        # طلب التحليل الذكي
-        prompt = f"حلل هذه الفرصة لأسامة وقدم نصيحة استثمارية: {market_data}"
-        response = model.generate_content(prompt)
-        analysis = response.text
-        
-        # إرسال التحديث لهاتفك
-        final_msg = f"🧠 *نظام أسامة الذكي - V6.4*\n\n{analysis}"
-        send_telegram_msg(final_msg)
-        return analysis
-    except Exception as e:
-        return f"❌ خطأ أثناء التحليل: {str(e)}"
+    market_context = "SOL/USDT السعر 145$، RSI 31. حلل كمدير محفظة حلال."
+    analysis = call_gemini_direct(market_context)
+    
+    print(f"✅ النتيجة: {analysis[:50]}...")
+    send_telegram(f"🧠 *نظام أسامة V7.0 - الربط المباشر*\n\n{analysis}")
 
 if __name__ == "__main__":
-    # تنفيذ المحاكاة الأولى فور التشغيل
-    print("🔄 جاري توليد أول تحليل استثماري...")
-    result = analyze_market_live()
-    print(f"🏁 النتيجة النهائية: {result}")
+    if not GEMINI_KEY:
+        print("❌ المفتاح مفقود!")
+    else:
+        run_simulation()
