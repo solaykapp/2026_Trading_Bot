@@ -1,0 +1,68 @@
+2026-04-10 22:11:12,011 [INFO] ============================================================
+2026-04-10 22:11:12,011 [INFO] 🚀 STARTING OPTIMIZATION CYCLE
+2026-04-10 22:11:12,011 [INFO] 📍 Current Working Directory: /Users/os/Trading Simulator
+2026-04-10 22:11:12,011 [INFO] ============================================================
+2026-04-10 22:11:12,011 [WARNING] ⚠️ Target file not found at /Users/os/Trading Simulator/trading_bot.py. Creating a placeholder.
+2026-04-10 22:11:12,012 [INFO] 🤖 Consulting gemini-1.5-pro for optimization...
+2026-04-10 22:11:13,240 [ERROR] ❌ Gemini API Error: 404 models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+2026-04-10 22:11:13,241 [WARNING] ⛔ No valid improvement received from AI.
+2026-04-10 22:14:41,512 [INFO] ============================================================
+2026-04-10 22:14:41,512 [INFO]    🚀 STARTING OPTIMIZATION CYCLE
+2026-04-10 22:14:41,512 [INFO]    📍 /Users/os/Trading Simulator
+2026-04-10 22:14:41,512 [INFO] ============================================================
+2026-04-10 22:14:41,559 [INFO] Gemini gemini-2.0-flash يحلّل الكود...
+2026-04-10 22:14:41,559 [INFO] AFC is enabled with max remote calls: 10.
+2026-04-10 22:14:42,646 [INFO] HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent "HTTP/1.1 404 Not Found"
+2026-04-10 22:14:42,648 [ERROR] Gemini فشل: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'This model models/gemini-2.0-flash is no longer available to new users. Please update your code to use a newer model for the latest features and improvements.', 'status': 'NOT_FOUND'}}
+2026-04-10 22:14:42,648 [WARNING] التحوّل لـ Claude كـ fallback...
+2026-04-10 22:14:42,649 [WARNING] ANTHROPIC_API_KEY غير موجود — تخطي Claude
+2026-04-10 22:14:42,649 [ERROR] كلا الـ AI غير متاحَين. تأكد من مفاتيح API في .env
+2026-04-10 22:14:42,649 [WARNING] لم يُستلم تحسين صالح من الـ AI.
+2026-04-10 22:16:09,253 [INFO] ============================================================
+2026-04-10 22:16:09,253 [INFO]    🚀 STARTING OPTIMIZATION CYCLE
+2026-04-10 22:16:09,253 [INFO]    📍 /Users/os/Trading Simulator
+2026-04-10 22:16:09,253 [INFO] ============================================================
+2026-04-10 22:16:09,303 [INFO] Gemini gemini-2.5-flash يحلّل الكود...
+2026-04-10 22:16:09,303 [INFO] AFC is enabled with max remote calls: 10.
+2026-04-10 22:16:11,001 [INFO] HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 503 Service Unavailable"
+2026-04-10 22:16:11,003 [ERROR] Gemini فشل: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}
+2026-04-10 22:16:11,003 [WARNING] التحوّل لـ Claude كـ fallback...
+2026-04-10 22:16:11,003 [WARNING] ANTHROPIC_API_KEY غير موجود — تخطي Claude
+2026-04-10 22:16:11,003 [ERROR] كلا الـ AI غير متاحَين. تأكد من مفاتيح API في .env
+2026-04-10 22:16:11,003 [WARNING] لم يُستلم تحسين صالح من الـ AI.
+2026-04-10 22:17:38,246 [INFO] ============================================================
+2026-04-10 22:17:38,247 [INFO]    🚀 STARTING OPTIMIZATION CYCLE
+2026-04-10 22:17:38,247 [INFO]    📍 /Users/os/Trading Simulator
+2026-04-10 22:17:38,247 [INFO] ============================================================
+2026-04-10 22:17:38,281 [INFO] جاري تجربة النموذج: gemini-2.5-flash ...
+2026-04-10 22:17:38,281 [INFO] AFC is enabled with max remote calls: 10.
+2026-04-10 22:17:49,188 [INFO] HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 503 Service Unavailable"
+2026-04-10 22:17:49,191 [WARNING] gemini-2.5-flash مشغول (503) — جاري تجربة النموذج التالي...
+2026-04-10 22:17:49,192 [INFO] جاري تجربة النموذج: gemini-2.0-flash-001 ...
+2026-04-10 22:17:49,192 [INFO] AFC is enabled with max remote calls: 10.
+2026-04-10 22:17:49,500 [INFO] HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent "HTTP/1.1 404 Not Found"
+2026-04-10 22:17:49,502 [WARNING] gemini-2.0-flash-001 غير متاح (404) — جاري تجربة النموذج التالي...
+2026-04-10 22:17:49,502 [INFO] جاري تجربة النموذج: gemini-2.0-flash-lite ...
+2026-04-10 22:17:49,502 [INFO] AFC is enabled with max remote calls: 10.
+2026-04-10 22:17:50,079 [INFO] HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent "HTTP/1.1 404 Not Found"
+2026-04-10 22:17:50,081 [WARNING] gemini-2.0-flash-lite غير متاح (404) — جاري تجربة النموذج التالي...
+2026-04-10 22:17:50,081 [ERROR] جميع نماذج Gemini غير متاحة حالياً
+2026-04-10 22:17:50,081 [WARNING] التحوّل لـ Claude كـ fallback...
+2026-04-10 22:17:50,081 [WARNING] ANTHROPIC_API_KEY غير موجود — تخطي Claude
+2026-04-10 22:17:50,081 [ERROR] كلا الـ AI غير متاحَين. تأكد من مفاتيح API في .env
+2026-04-10 22:17:50,081 [WARNING] لم يُستلم تحسين صالح من الـ AI.
+2026-04-10 22:19:01,608 [INFO] ============================================================
+2026-04-10 22:19:01,608 [INFO]    🚀 STARTING OPTIMIZATION CYCLE
+2026-04-10 22:19:01,608 [INFO]    📍 /Users/os/Trading Simulator
+2026-04-10 22:19:01,608 [INFO] ============================================================
+2026-04-10 22:19:01,644 [INFO] جاري تجربة النموذج: gemini-2.5-flash-lite ...
+2026-04-10 22:19:01,644 [INFO] AFC is enabled with max remote calls: 10.
+2026-04-10 22:19:04,157 [INFO] HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+2026-04-10 22:19:04,161 [INFO] Gemini (gemini-2.5-flash-lite) | الجودة: 3/10 → 8/10
+2026-04-10 22:19:04,166 [INFO] نسخة احتياطية: backup_20260410_221904_0db91c3f.py
+2026-04-10 22:19:04,167 [INFO] تم تحديث trading_bot.py
+2026-04-10 22:19:04,167 [WARNING] GITHUB_TOKEN غير موجود — تخطي GitHub
+2026-04-10 22:19:04,167 [INFO] ============================================================
+2026-04-10 22:19:04,167 [INFO]    ✅ CYCLE COMPLETED | AI: Gemini (gemini-2.5-flash-lite)
+2026-04-10 22:19:04,167 [INFO]    جودة: 3 → 8/10
+2026-04-10 22:19:04,167 [INFO] ============================================================
