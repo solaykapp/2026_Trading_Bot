@@ -8,3 +8,4 @@ ta
 openai
 pybit
 aiohttp
+GitPython==3.1.41
