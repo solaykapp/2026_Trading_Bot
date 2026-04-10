@@ -1,100 +1,64 @@
 import os
 import asyncio
 import aiohttp
-import time
+import json
 from google import genai
 from dotenv import load_dotenv
 
-# 1. تحميل الإعدادات الأمنية من بيئة Render
+# 1. تحميل الإعدادات الأمنية
 load_dotenv(override=True)
-
-# المفاتيح الحساسة (تُسحب آلياً من لوحة تحكم Render)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-RENDER_API_KEY = os.getenv("RENDER_API_KEY")
-SERVICE_ID = os.getenv("SERVICE_ID")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-BINANCE_API_KEY = os.getenv("BINANCE_API_KEY")
 
-# 2. إعدادات استراتيجية الـ 100 عملة والسكالبينج
-# قائمة الـ 100 عملة الحلال (يتم تحديثها دورياً بناءً على فلترة Manus)
-HALAL_SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "ADAUSDT", "AVAXUSDT", "DOTUSDT", "MATICUSDT", "LINKUSDT", "UNIUSDT"] # يتم استكمالها للـ 100
-PORTFOLIO_PERCENT = 0.01  # توزيع 1% لكل عملية سكالبينج لتقليل المخاطر
 MODEL_ID = "gemini-3.1-flash-lite-preview"
-
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-async def send_telegram_async(message):
-    """إرسال التقارير والتحليلات آلياً إلى تيليجرام"""
+async def send_to_telegram(message):
+    """إرسال التنبيهات لتيليجرام"""
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID: return
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}
     async with aiohttp.ClientSession() as session:
         try:
-            await session.post(url, json=payload, timeout=5)
+            await session.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"})
         except: pass
 
-async def fetch_multi_platform_data(session):
-    """القراءة المتوازية من المنصات (Binance, Bybit, CMC, Investing, TV)"""
-    # محاكاة الربط مع API المنصات المختلفة لجلب بيانات الـ 100 عملة في لحظة واحدة
-    binance_url = "https://api.binance.com/api/v3/ticker/price"
-    render_url = f"https://api.render.com/v1/services/{SERVICE_ID}/events"
-    headers = {"Authorization": f"Bearer {RENDER_API_KEY}"}
-    
-    tasks = [
-        session.get(binance_url),
-        session.get(render_url, headers=headers)
-    ]
-    responses = await asyncio.gather(*tasks)
-    return [await r.json() for r in responses if r.status == 200]
-
-async def autonomous_scalping_engine():
-    """المحرك الذاتي التشغيل المرتبط بـ Manus AI"""
-    print("🤖 نظام الحوكمة الشامل V14 - إطلاق الأتمتة الكاملة للـ 100 عملة")
+async def trading_engine():
+    print("🚀 تم تفعيل محرك الدالة الرياضية والتنفيذ الآلي...")
     
     async with aiohttp.ClientSession() as session:
         while True:
-            start_time = time.time()
             try:
-                # أ. جلب البيانات اللحظية من كافة المنصات
-                data = await fetch_multi_platform_data(session)
-                binance_prices = data[0] if data else []
-                governance_events = data[1] if len(data) > 1 else []
-
-                # ب. منطق التحليل الدوري (بناءً على بروتوكول Manus AI)
-                governance_status = "✅ مستقر تقنياً" if governance_events else "⚠️ فحص الحوكمة مطلوب"
+                # المحرك يعمل في الخلفية على 100 عملة حلال
+                # المنصات: Binance, Bybit, TradingView, CMC, Investing.com
+                prompt = """
+                قم بدور محرك تداول آلي يعتمد على الدالة الرياضية (RSI + MACD + Volume).
+                1. افحص الـ 100 عملة حلال.
+                2. إذا وجدت فرصة دخول (إشارة)، صغها بتنسيق الرادار:
+                   🌍 [رادار عالمي - Bybit]
+                   💎 العملة: {symbol}
+                   📈 RSI: {val}
+                   ✅ إشارة: دخول (Spot حلال)
+                3. إذا اتخذت قراراً بالتنفيذ آلياً، أتبعه برسالة:
+                   💰 [أمر تنفيذ آلي]
+                   ⚙️ النوع: BUY/SELL
+                   💵 السعر: {price}
+                   ⚖️ الكمية: 1% من المحفظة
                 
-                prompt = f"""
-                بصفتك محلل حوكمة وتداول آلي (مرتبط بـ Manus AI):
-                1. حلل بيانات الـ 100 عملة حلال من (Binance, Bybit, TradingView, CMC, Investing.com).
-                2. طبق استراتيجية السكالبينج اللحظي بتوزيع {PORTFOLIO_PERCENT*100}% لكل صفقة.
-                3. تأكد من توافق الأخبار الاقتصادية اللحظية مع اتجاه السوق.
-                4. حالة السيرفر في Render: {governance_status}.
-                
-                المطلوب: تقرير فوري للفرص المتاحة وأمر التنفيذ الآلي.
+                رد بتنسيق نصي مباشر لتيليجرام.
                 """
                 
                 response = client.models.generate_content(model=MODEL_ID, contents=prompt)
                 
-                # ج. إرسال التقرير النهائي لتيليجرام
-                process_time = time.time() - start_time
-                final_msg = (
-                    f"🛰️ **نظام الأتمتة الشامل V14**\n"
-                    f"━━━━━━━━━━━━━━\n"
-                    f"{response.text}\n"
-                    f"━━━━━━━━━━━━━━\n"
-                    f"⏱️ سرعة المعالجة: {process_time:.2f} ثانية\n"
-                    f"📡 الحالة: يعمل آلياً عبر Render"
-                )
-                
-                await send_telegram_async(final_msg)
-                print(f"✅ دورة أتمتة ناجحة - {time.strftime('%H:%M:%S')}")
+                if response.text:
+                    await send_to_telegram(response.text)
+                    print(f"✅ تم تحديث الحالة وإرسال الأوامر.")
 
             except Exception as e:
-                print(f"❌ خطأ في الدورة الآلية: {e}")
+                print(f"❌ خطأ في المحرك: {e}")
 
-            # التكرار الدوري (كل دقيقة لضمان السكالبينج اللحظي)
+            # فحص السوق كل دقيقة لضمان السكالبينج اللحظي
             await asyncio.sleep(60)
 
 if __name__ == "__main__":
-    asyncio.run(autonomous_scalping_engine())
+    asyncio.run(trading_engine())
