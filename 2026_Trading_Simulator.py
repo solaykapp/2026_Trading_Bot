@@ -2,21 +2,34 @@ import os, time, pandas as pd, requests
 from dotenv import load_dotenv
 from binance.client import Client
 from ta.momentum import RSIIndicator
+
 load_dotenv()
-c = Client(os.getenv('BINANCE_API_KEY'), os.getenv('BINANCE_API_SECRET'))
-def run_bot():
-    print('🚀 البوت بدأ العمل...')
+
+def send_tg(m):
+    t = os.getenv('TELEGRAM_TOKEN')
+    c = os.getenv('TELEGRAM_CHAT_ID')
+    if t and c:
+        requests.post(f'https://api.telegram.org/bot{t}/sendMessage', json={'chat_id': c, 'text': m})
+
+try:
+    client = Client(os.getenv('BINANCE_API_KEY'), os.getenv('BINANCE_API_SECRET'))
+except Exception as e:
+    print(f'Conn Error: {e}')
+
+def run():
+    print('🚀 المحرك الذكي V2.3 انطلق...')
+    send_tg('🤖 تم تفعيل المحرك الهجومي V2.3 بنجاح!')
     while True:
         try:
-            for s in ['BTCUSDT', 'ETHUSDT', 'SUIUSDT', 'SOLUSDT']:
-                k = c.get_klines(symbol=s, interval='15m', limit=50)
-                df = pd.DataFrame(k)[4].astype(float)
-                r = RSIIndicator(close=df).rsi().iloc[-1]
-                print(f'🔍 {s}: {r:.2f}')
-                if r <= 42:
-                    url = f'https://api.telegram.org/bot{os.getenv("TELEGRAM_TOKEN")}/sendMessage'
-                    requests.post(url, json={'chat_id': os.getenv("TELEGRAM_CHAT_ID"), 'text': f'🎯 {s} RSI: {r:.2f}'})
+            for s in ['BTCUSDT', 'ETHUSDT', 'SUIUSDT', 'SOLUSDT', 'AVAXUSDT']:
+                k = client.get_klines(symbol=s rsi = RSIIndicator(close=df).rsi().iloc[-1]
+                print(f'🔍 {s}: {rsi:.2f}')
+                if rsi <= 42:
+                    send_tg(f'🎯 فرصة: {s} | RSI: {rsi:.2f}')
             time.sleep(180)
         except Exception as e:
-            print(f'Error: {e}'if __name__ == '__main__':
-    run_bot()
+            print(f'Err: {e}')
+            time.sleep(60)
+
+if __name__ == '__main__':
+    run()
