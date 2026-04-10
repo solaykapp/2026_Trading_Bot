@@ -3,36 +3,45 @@ import requests
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-# 1. تحميل الإعدادات المحلية (إذا وجدت)
+# 1. تحميل الإعدادات المحلية للعمل على الماك
 load_dotenv()
 
-# 2. جلب المفاتيح من بيئة العمل (Render أو .env)
+# 2. جلب المفاتيح من إعدادات البيئة (Render Environment Variables)
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-# 3. تهيئة محرك Gemini (مع تصحيح اسم الموديل لتجنب خطأ 404)
+# 3. نظام اختيار الموديل الذكي لتجاوز خطأ 404
+model = None
 if GEMINI_KEY:
-    try:
-        genai.configure(api_key=GEMINI_KEY)
-        # استخدام الاسم المباشر للموديل لضمان التوافق
-        model = genai.GenerativeModel(
-            model_name='gemini-1.5-flash',
-            system_instruction=(
-                "أنت مدير محفظة أسامة بن عبد الرحمن الاستثمارية. "
-                "رأس المال المخصص: 50,000 ريال سعودي. "
-                "قاعدة العمل: الاستثمار الحلال فقط، إدارة مخاطر صارمة، "
-                "وتحليل تقني دقيق بناءً على المؤشرات المزودة."
+    genai.configure(api_key=GEMINI_KEY)
+    
+    # قائمة الموديلات المتاحة للربط البرمجي
+    model_candidates = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-pro']
+    
+    for m_name in model_candidates:
+        try:
+            print(f"🔄 جاري محاولة الربط مع الموديل: {m_name}...")
+            temp_model = genai.GenerativeModel(
+                model_name=m_name,
+                system_instruction=(
+                    "أنت مدير محفظة أسامة بن عبد الرحمن الاستثمارية. "
+                    "تحلل السوق بناءً على معايير الحوكمة الشرعية وإدارة المخاطر الصارمة. "
+                    "لغة التواصل: العربية الاحترافية."
+                )
             )
-        )
-        print("✅ تم تهيئة Gemini بنجاح.")
-    except Exception as e:
-        print(f"❌ فشل في تهيئة Gemini: {str(e)}")
+            # اختبار الموديل بطلب بسيط للتأكد من استجابته
+            temp_model.generate_content("ping")
+            model = temp_model
+            print(f"✅ تم تفعيل الموديل بنجاح: {m_name}")
+            break
+        except Exception as e:
+            print(f"⚠️ الموديل {m_name} غير متاح حالياً. الانتقال للبديل...")
 else:
-    print("❌ خطأ: مفتاح GEMINI_API_KEY غير موجود في إعدادات البيئة!")
+    print("❌ خطأ: مفتاح GEMINI_API_KEY غير موجود في إعدادات Render!")
 
 def send_telegram_msg(text):
-    """إرسال التحديثات مباشرة لهاتف أسامة"""
+    """إرسال التقارير مباشرة لتليجرام أسامة"""
     if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
         payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "Markdown"}
@@ -42,34 +51,35 @@ def send_telegram_msg(text):
             print(f"❌ خطأ في إرسال تليجرام: {str(e)}")
 
 def analyze_market_live():
-    """محاكاة فرصة سوقية لاختبار الربط"""
-    print("🔄 جاري فحص السوق والربط مع Gemini...")
-    
-    # مثال لبيانات قادمة من الرادار
+    """محاكاة تحليل سوقي لعملة SOL/USDT"""
+    if not model:
+        return "❌ لم يتم تهيئة أي موديل ذكاء اصطناعي بنجاح."
+
     market_snapshot = (
-        "الرمز: SOL/USDT\n"
-        "السعر الحالي: 145.2\n"
-        "مؤشر RSI: 32 (تشبع بيعي)\n"
-        "الاتجاه: صاعد على الفاصل الزمني 4H"
+        "العملة: SOL/USDT\n"
+        "السعر: 145.20$\n"
+        "RSI: 31 (قريب من منطقة الشراء)\n"
+        "الحالة: ارتداد من منطقة دعم قوية"
     )
     
     try:
-        # طلب التحليل من Gemini
-        prompt = f"حلل هذه الفرصة لأسامة وفق معاييرنا: {market_snapshot}"
+        # طلب التحليل من الموديل الذي تم تفعيله
+        prompt = f"قدم تحليل سريع وتوصية لأسامة بناءً على هذه البيانات: {market_snapshot}"
         response = model.generate_content(prompt)
         analysis = response.text
         
-        # إرسال النتيجة لتليجرام
-        final_msg = f"🧠 *اختبار الربط الذكي - V5.8*\n\n{analysis}"
+        # إرسال النتيجة النهائية لتليجرام
+        final_msg = f"🧠 *نظام التداول الذكي لأسامة - V6.1*\n\n{analysis}"
         send_telegram_msg(final_msg)
         
         return analysis
     except Exception as e:
-        error_msg = f"❌ خطأ في التحليل: {str(e)}"
-        print(error_msg)
-        return error_msg
+        err_msg = f"❌ خطأ أثناء توليد التحليل: {str(e)}"
+        print(err_msg)
+        return err_msg
 
 if __name__ == "__main__":
-    # تشغيل الاختبار مرة واحدة عند الإقلاع للتأكد من الربط
+    # تشغيل البوت للتأكد من الربط فوراً
+    print("🚀 جاري بدء تشغيل النظام...")
     result = analyze_market_live()
-    print(f"✅ نتيجة التحليل النهائي: {result}")
+    print(f"🏁 نتيجة التشغيل: {result}")
