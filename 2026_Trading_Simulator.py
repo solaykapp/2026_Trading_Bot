@@ -1,47 +1,81 @@
 import os
+import time
 import requests
-import json
+from google import genai
 from dotenv import load_dotenv
 
-load_dotenv()
+# تحميل الإعدادات
+load_dotenv(override=True)
 
-GEMINI_KEY = os.getenv("GEMINI_API_KEY")
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+RENDER_API_KEY = os.getenv("RENDER_API_KEY")
+SERVICE_ID = os.getenv("SERVICE_ID")
+MODEL_ID = "gemini-3.1-flash-lite-preview"
 
-def call_gemini_stable(prompt):
-    # استخدام رابط الإصدار 1.5 flash مع المفتاح مباشرة
-    # تم تغيير الرابط لصيغة v1beta للتأكد من التوافق مع المفاتيح المجانية
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_KEY}"
-    
-    headers = {'Content-Type': 'application/json'}
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}]
+def get_render_events():
+    url = f"https://api.render.com/v1/services/{SERVICE_ID}/events?limit=5"
+    headers = {
+        "Authorization": f"Bearer {RENDER_API_KEY}",
+        "Accept": "application/json"
     }
-
     try:
-        print("🔗 محاولة الربط عبر الرابط المتوافق...")
-        response = requests.post(url, headers=headers, json=payload)
-        
+        response = requests.get(url, headers=headers, timeout=10)
         if response.status_code == 200:
-            return response.json()['candidates'][0]['content']['parts'][0]['text']
-        else:
-            # طباعة الخطأ كاملاً لفهمه
-            return f"❌ خطأ {response.status_code}: {response.text[:100]}"
-    except Exception as e:
-        return f"❌ فشل تقني: {str(e)}"
+            events = response.json()
+            
+            # إذا كان السجل فارغاً
+            if not events or len(events) == 0:
+                return "لا توجد أحداث مسجلة حالياً في السيرفر (السجل نظيف)."
 
-def run_simulation():
-    print("🚀 إطلاق نسخة التصحيح V7.1")
-    market_context = "حلل وضع عملة SOL حالياً كخبير استثمار."
-    analysis = call_gemini_stable(market_context)
+            # استخراج البيانات بأمان
+            summary = "آخر أحداث السيرفر المستخرجة:\n"
+            for item in events:
+                # استخدام .get() مع قيمة افتراضية لتجنب خطأ الـ Key
+                event_data = item.get('event', item) # بعض استجابات ريندر تضع البيانات داخل كائن 'event'
+                e_type = event_data.get('type', 'نشاط غير محدد')
+                e_time = event_data.get('createdAt', 'وقت غير معروف')
+                summary += f"- {e_type} @ {e_time}\n"
+            return summary
+        else:
+            return f"تنبيه: Render استجاب برمز {response.status_code}"
+    except Exception as e:
+        return f"خطأ في معالجة البيانات: {str(e)}"
+
+def run_governance_bot():
+    print("🚀 نظام الحوكمة V9.2 - متصل ومؤمن")
     
-    print(f"🏁 النتيجة: {analysis}")
+    if not GEMINI_API_KEY or not RENDER_API_KEY:
+        print("❌ خطأ: تأكد من تعبئة المفاتيح في ملف .env")
+        return
+
+    client = genai.Client(api_key=GEMINI_API_KEY)
     
-    if TELEGRAM_TOKEN and "❌" not in analysis:
-        msg = f"🧠 *نظام أسامة - تحديث V7.1*\n\n{analysis}"
-        requests.post(f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage", 
-                      json={"chat_id": TELEGRAM_CHAT_ID, "text": msg, "parse_mode": "Markdown"})
+    try:
+        while True:
+            t = time.strftime('%H:%M:%S')
+            print(f"\n[{t}] 📡 جاري فحص الحالة في فرانكفورت...")
+            
+            actual_data = get_render_events()
+            print(f"📦 البيانات المستلمة: {actual_data[:100]}...") # طباعة مختصرة للتأكد
+            
+            prompt = f"""
+            بصفتك مستشار حوكمة تقنية، حلل حالة سيرفر Render التالية:
+            {actual_data}
+            
+            المطلوب: تقييم الاستقرار وتقديم نصيحة واحدة.
+            """
+            
+            try:
+                response = client.models.generate_content(model=MODEL_ID, contents=prompt)
+                print(f"💡 التحليل الذكي:\n{response.text}")
+            except Exception as ge:
+                print(f"⚠️ فشل تحليل Gemini: {ge}")
+
+            print("="*50)
+            time.sleep(120)
+            
+    except KeyboardInterrupt:
+        print("\n🛑 تم إيقاف المراقبة يدوياً.")
 
 if __name__ == "__main__":
-    run_simulation()
+    run_governance_bot()
