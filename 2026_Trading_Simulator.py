@@ -3,46 +3,42 @@ import requests
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-# تحميل الإعدادات المحلية (لجهاز الماك)
+# 1. تحميل الإعدادات المحلية
 load_dotenv()
 
-# جلب المفاتيح من Render Environment Variables
+# 2. جلب المفاتيح من إعدادات البيئة
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 model = None
 
-print("🔍 بدأت عملية التحقق من الاتصال...")
+print("🚀 جاري بدء تشغيل النظام ببروتوكول V6.4 المستقر...")
 
 if GEMINI_KEY:
     try:
-        genai.configure(api_key=GEMINI_KEY)
-        # محاولة الوصول لأحدث الموديلات المستقرة
-        model_candidates = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-pro']
+        # التعديل الحاسم: فرض بروتوكول 'rest' لتجاوز مشاكل الإصدارات التجريبية v1beta
+        genai.configure(api_key=GEMINI_KEY, transport='rest')
         
-        for m_name in model_candidates:
-            try:
-                print(f"🔄 محاولة فحص الموديل: {m_name}")
-                temp_model = genai.GenerativeModel(model_name=m_name)
-                # اختبار حقيقي بطلب بسيط جداً
-                test_response = temp_model.generate_content("Say OK")
-                
-                if test_response:
-                    model = temp_model
-                    print(f"✅ نجح الاتصال بـ: {m_name}")
-                    break
-            except Exception as inner_error:
-                # هذا السطر سيكشف لنا في الـ Logs سبب الرفض (API Key expired, Permission denied, etc.)
-                print(f"❌ الموديل {m_name} فشل بسبب: {str(inner_error)}")
-                
+        # اختيار الموديل المستقر الأكثر كفاءة
+        model = genai.GenerativeModel(
+            model_name='gemini-1.5-flash',
+            system_instruction=(
+                "أنت مدير محفظة أسامة بن عبد الرحمن الاستثمارية. "
+                "تحلل البيانات وتتخذ قرارات تداول بناءً على الحوكمة وإدارة المخاطر. "
+                "لغة التواصل: العربية."
+            )
+        )
+        # اختبار أولي سريع للتأكد من تفعيل الربط
+        test_check = model.generate_content("ping")
+        print("✅ تم تفعيل الموديل والربط بنجاح عبر بروتوكول REST.")
     except Exception as e:
-        print(f"❌ خطأ عام في تهيئة مكتبة Google: {str(e)}")
+        print(f"❌ فشل الربط النهائي. السبب: {str(e)}")
 else:
-    print("❌ خطأ: مفتاح GEMINI_API_KEY مفقود في إعدادات Render!")
+    print("❌ خطأ: GEMINI_API_KEY غير موجود في إعدادات Render!")
 
 def send_telegram_msg(text):
-    """إرسال التقرير لتليجرام أسامة"""
+    """إرسال التقارير لتليجرام أسامة"""
     if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
         payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "Markdown"}
@@ -52,23 +48,32 @@ def send_telegram_msg(text):
             print(f"❌ فشل إرسال تليجرام: {str(e)}")
 
 def analyze_market_live():
+    """محاكاة فرصة تداول حقيقية لأسامة"""
     if not model:
-        return "❌ النظام غير متصل بـ AI حالياً."
+        return "❌ محرك الذكاء الاصطناعي غير جاهز."
 
-    market_data = "العملة: SOL/USDT | السعر: 145.20$ | RSI: 31"
+    market_data = (
+        "العملة: SOL/USDT\n"
+        "السعر الحالي: 145.20$\n"
+        "مؤشر RSI: 31 (تشبع بيعي)\n"
+        "المعايير: حوكمة شرعية + إدارة مخاطر"
+    )
     
     try:
-        prompt = f"حلل البيانات التالية كخبير حوكمة استثمارية لأسامة: {market_data}"
+        # طلب التحليل الذكي
+        prompt = f"حلل هذه الفرصة لأسامة وقدم نصيحة استثمارية: {market_data}"
         response = model.generate_content(prompt)
         analysis = response.text
         
-        final_msg = f"🧠 *تحديث النظام الذكي - أسامة V6.2*\n\n{analysis}"
+        # إرسال التحديث لهاتفك
+        final_msg = f"🧠 *نظام أسامة الذكي - V6.4*\n\n{analysis}"
         send_telegram_msg(final_msg)
         return analysis
     except Exception as e:
-        return f"❌ فشل توليد التحليل: {str(e)}"
+        return f"❌ خطأ أثناء التحليل: {str(e)}"
 
 if __name__ == "__main__":
-    print("🚀 جاري إطلاق محرك التحليل...")
+    # تنفيذ المحاكاة الأولى فور التشغيل
+    print("🔄 جاري توليد أول تحليل استثماري...")
     result = analyze_market_live()
     print(f"🏁 النتيجة النهائية: {result}")
